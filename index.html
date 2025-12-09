@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Classic Piquet</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@400;700&display=swap" rel="stylesheet">
+    <title>Piquet: Pure Hotseat Edition</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@400;700&family=Great+Vibes&display=swap" rel="stylesheet">
     <style>
-        /* --- Variables & Reset --- */
+        /* --- CSS VARIABLES & RESET --- */
         :root {
             --felt-green: #35654d;
             --felt-dark: #1e3f2b;
             --gold: #d4af37;
             --gold-light: #f3e5ab;
+            --miss-red: #cc0000; /* Deep Red for Dedication */
             --card-w: 90px;
             --card-h: 130px;
         }
@@ -30,7 +31,17 @@
             overflow-x: hidden;
         }
 
-        /* --- Typography --- */
+        /* --- DEDICATION STYLING --- */
+        #dedication-line {
+            font-family: 'Great Vibes', cursive; /* Elegant Script Font */
+            font-size: 2.5rem;
+            color: var(--miss-red);
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.7), 0 0 10px var(--miss-red);
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        /* --- TYPOGRAPHY --- */
         h1 {
             font-family: 'Playfair Display', serif;
             color: var(--gold);
@@ -40,7 +51,7 @@
             letter-spacing: 1px;
         }
 
-        /* --- HUD & Layout --- */
+        /* --- HUD --- */
         .hud-container {
             width: 100%;
             max-width: 900px;
@@ -53,13 +64,8 @@
             border-radius: 12px;
             border-bottom: 2px solid var(--gold);
         }
-
-        .score-box {
-            font-size: 1.2rem;
-            font-weight: 700;
-        }
+        .score-box { font-size: 1.2rem; font-weight: 700; }
         .score-box span { color: var(--gold); margin-left: 5px; font-size: 1.4rem; }
-
         #phase-indicator {
             font-family: 'Playfair Display', serif;
             font-size: 1.5rem;
@@ -68,6 +74,7 @@
             letter-spacing: 1px;
         }
 
+        /* --- GAME AREA --- */
         #game-area {
             position: relative;
             width: 100%;
@@ -77,19 +84,26 @@
             align-items: center;
         }
 
-        /* --- Trick Area (The "Table") --- */
+        /* --- TABLE / TRICK AREA & TALONS --- */
+        #table-center {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 500px;
+            margin: 20px auto;
+        }
         #trick-area {
             display: flex;
             justify-content: center;
             align-items: center;
             height: 180px;
-            width: 100%;
-            margin: 20px 0;
+            flex-grow: 1;
+            margin: 0 20px;
             border: 2px dashed rgba(212, 175, 55, 0.3);
             border-radius: 16px;
             background: rgba(0,0,0,0.1);
         }
-        
         .trick-slot {
             width: var(--card-w);
             height: var(--card-h);
@@ -98,23 +112,53 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* Placeholder styling */
-            border: 1px solid rgba(255,255,255,0.1); 
+            border: 1px solid rgba(255,255,255,0.05); 
         }
 
-        /* --- Hand Area --- */
+        /* --- TALON PILES --- */
+        .talon-pile {
+            width: 60px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--gold-light);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            position: relative;
+        }
+        .talon-pile::after {
+            content: 'DISCARDS';
+            position: absolute;
+            bottom: -20px;
+            font-size: 0.7rem;
+            font-weight: 400;
+            opacity: 0.7;
+        }
+        .talon-pile.empty {
+            background: rgba(255, 255, 255, 0.05);
+            border-style: dashed;
+            color: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* --- HAND AREA --- */
         .hand-container {
             min-height: 160px;
             width: 100%;
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            gap: -10px; /* Overlap effect */
+            gap: -10px;
             padding: 10px;
             transition: opacity 0.3s;
         }
         
-        /* --- Card Styling --- */
+        /* --- CARD STYLING --- */
         .card {
             width: var(--card-w);
             height: var(--card-h);
@@ -128,29 +172,25 @@
             padding: 8px;
             margin: 5px;
             cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            transition: transform 0.2s, box-shadow 0.2s;
             user-select: none;
             color: #333;
         }
-
         .card:hover:not(.disabled) {
             transform: translateY(-15px) scale(1.05);
             box-shadow: 0 10px 20px rgba(0,0,0,0.4);
             z-index: 10;
         }
-
         .card.selected {
             transform: translateY(-20px);
             box-shadow: 0 0 0 3px var(--gold);
             z-index: 5;
         }
-
         .card.disabled {
             opacity: 0.6;
             filter: grayscale(80%);
             cursor: not-allowed;
         }
-
         .rank { font-weight: 900; font-size: 1.2rem; line-height: 1; }
         .suit { font-size: 1.8rem; align-self: flex-end; line-height: 1; }
         .center-suit { 
@@ -160,11 +200,10 @@
             font-size: 2.5rem; 
             opacity: 0.15; 
         }
-        
         .hearts, .diamonds { color: #d32f2f; }
         .clubs, .spades { color: #212121; }
 
-        /* --- Controls --- */
+        /* --- CONTROLS --- */
         .controls-area {
             margin-top: 20px;
             display: flex;
@@ -172,7 +211,6 @@
             flex-wrap: wrap;
             justify-content: center;
         }
-
         button {
             background: linear-gradient(to bottom, #f3e5ab, #d4af37);
             border: 1px solid #b8860b;
@@ -188,14 +226,27 @@
             box-shadow: 0 4px 0 #8b6914, 0 5px 10px rgba(0,0,0,0.3);
             transition: all 0.1s;
         }
-
         button:hover { filter: brightness(1.1); transform: translateY(-1px); }
         button:active { transform: translateY(4px); box-shadow: 0 0 0 #8b6914, inset 0 2px 5px rgba(0,0,0,0.2); }
-        button:disabled { filter: grayscale(1); cursor: default; }
+        
+        /* --- TRANSITION OVERLAY --- */
+        #transition-overlay {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(30, 63, 43, 0.98); /* Opaque green to hide cards */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            z-index: 100;
+            border-radius: 20px;
+            border: 2px solid var(--gold);
+        }
+        #transition-overlay h2 { color: var(--gold-light); margin-bottom: 20px; font-size: 2rem; }
+        #transition-overlay p { font-size: 1.2rem; margin-bottom: 30px; color: #fff; }
 
-        .btn-large { padding: 15px 40px; font-size: 1.2rem; }
-
-        /* --- Notifications --- */
+        /* --- NOTIFICATIONS --- */
         #notification-banner {
             position: fixed;
             top: -100px;
@@ -206,41 +257,32 @@
             padding: 15px 40px;
             border-radius: 0 0 10px 10px;
             text-align: center;
-            z-index: 100;
+            z-index: 200;
             transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             box-shadow: 0 5px 15px rgba(0,0,0,0.5);
         }
         #notification-banner.show { top: 0; }
         #notif-text { font-size: 1.1rem; color: #fff; }
 
-        /* --- Transition Overlay --- */
-        #transition-overlay {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 200px;
-            text-align: center;
-        }
-        #transition-overlay h2 { color: var(--gold); margin-bottom: 20px; }
-
-        /* --- Responsive --- */
+        /* --- RESPONSIVE --- */
         @media (max-width: 600px) {
             :root { --card-w: 60px; --card-h: 90px; }
+            #dedication-line { font-size: 1.8rem; }
             h1 { font-size: 2rem; }
             .hud-container { flex-direction: column; gap: 10px; }
-            .hand-container { gap: 5px; }
-            .score-box { font-size: 1rem; }
+            #table-center { flex-direction: column; }
+            #trick-area { margin: 10px 0; }
+            .talon-pile { margin: 10px 0; }
         }
     </style>
 </head>
 <body>
 
-    <div id="notification-banner">
-        <div id="notif-text">Welcome to Piquet</div>
-    </div>
+    <div id="notification-banner"><div id="notif-text">Welcome</div></div>
+    
+    <div id="dedication-line">For Miss Red</div>
 
-    <h1>Classic Piquet</h1>
+    <h1>Piquet: Pure Hotseat Edition</h1>
 
     <div class="hud-container">
         <div class="score-box">P1: <span id="score-p1">0</span></div>
@@ -249,35 +291,43 @@
     </div>
 
     <div id="game-area">
-        <div id="trick-area">
-            <div class="trick-slot" id="slot-p1"></div>
-            <div class="trick-slot" id="slot-p2"></div>
+        
+        <div id="table-center">
+             <div class="talon-pile" id="talon-p1">0</div>
+
+            <div id="trick-area">
+                <div class="trick-slot" id="slot-p1"></div>
+                <div class="trick-slot" id="slot-p2"></div>
+            </div>
+
+             <div class="talon-pile" id="talon-p2">0</div>
         </div>
 
+
         <div id="hand-display" class="hand-container">
-            <p style="opacity: 0.7; font-style: italic;">Select a mode below to begin.</p>
+            <p style="opacity: 0.7; font-style: italic;">Click Start New Game</p>
         </div>
 
         <div id="transition-overlay">
-            <h2>Pass Device to Player 2</h2>
-            <button class="btn-large" id="confirm-pass-btn">I am Player 2 - Reveal Hand</button>
+            <h2>Pass the Device</h2>
+            <p>Pass device to <span id="next-player-name" style="color:var(--gold); font-weight:bold;">Player 2</span></p>
+            <button class="btn-large" id="reveal-btn">I am Ready - Reveal Hand</button>
         </div>
 
         <div class="controls-area">
-            <button id="start-1p-btn" class="btn-large">1 Player (vs AI)</button>
-            <button id="start-2p-btn" class="btn-large">2 Players (Hotseat)</button>
-
+            <button id="start-2p-btn" class="btn-large">Start New Game (2 Players)</button>
             <button id="ecarte-btn" style="display:none;">Discard Selected</button>
             <button id="declare-btn" style="display:none;">Declare Score</button>
         </div>
     </div>
 
     <script>
-        /* --- Config & Constants --- */
+        /* --- CONFIG --- */
         const SUITS = ['Spades', 'Hearts', 'Clubs', 'Diamonds'];
         const RANKS = ['7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace'];
         const VALUES = {'7':7, '8':8, '9':9, '10':10, 'Jack':11, 'Queen':12, 'King':13, 'Ace':14};
         
+        /* --- UI HELPERS --- */
         const UI = {
             banner: document.getElementById('notification-banner'),
             notifText: document.getElementById('notif-text'),
@@ -287,50 +337,43 @@
             hand: document.getElementById('hand-display'),
             slotP1: document.getElementById('slot-p1'),
             slotP2: document.getElementById('slot-p2'),
+            talonP1: document.getElementById('talon-p1'),
+            talonP2: document.getElementById('talon-p2'),
             overlay: document.getElementById('transition-overlay'),
+            nextName: document.getElementById('next-player-name'),
             btns: {
-                start1p: document.getElementById('start-1p-btn'),
                 start2p: document.getElementById('start-2p-btn'),
                 ecarte: document.getElementById('ecarte-btn'),
                 declare: document.getElementById('declare-btn'),
-                pass: document.getElementById('confirm-pass-btn')
+                reveal: document.getElementById('reveal-btn')
             }
         };
 
-        /* --- Classes --- */
+        /* --- GAME LOGIC --- */
         class Card {
             constructor(suit, rank) {
                 this.suit = suit;
                 this.rank = rank;
                 this.val = VALUES[rank];
             }
-            // For logic comparison
-            isSame(c) { return this.suit === c.suit && this.rank === c.rank; }
         }
 
         class Player {
-            constructor(name, isAI = false) {
+            constructor(name) {
                 this.name = name;
-                this.isAI = isAI;
                 this.hand = [];
                 this.score = 0;
-                this.discards = [];
+                this.discards = 0; // Tracks number of cards discarded
             }
             sortHand() {
-                // Sort by Suit then Rank (Descending)
                 this.hand.sort((a,b) => {
                     if (a.suit !== b.suit) return a.suit.localeCompare(b.suit);
                     return b.val - a.val;
                 });
             }
-            // Simplified point declaration logic for demo purposes
             calcPoints() {
                 let pts = 0;
-                // Basic: Points for sets (3+ of a kind) and runs would go here. 
-                // Simplified: 1 pt for every face card/Ace for demo flow
-                this.hand.forEach(c => {
-                    if (c.val >= 10) pts += 1;
-                });
+                this.hand.forEach(c => { if (c.val >= 10) pts += 1; });
                 return pts;
             }
             getPlayable(leadSuit) {
@@ -341,36 +384,25 @@
         }
 
         class Game {
-            constructor(mode) {
-                this.mode = mode; // '1p' or '2p'
+            constructor() {
                 this.p1 = new Player("Player 1");
-                this.p2 = new Player("Player 2", mode === '1p');
+                this.p2 = new Player("Player 2");
                 this.deck = [];
                 this.talon = [];
-                this.turn = 0; // 0 = p1, 1 = p2
-                this.dealer = 1; // P2 deals first, so P1 is Elder
+                this.turn = 0; // 0=p1, 1=p2
                 this.phase = 'setup'; 
-                this.tricks = [];
-                this.leadSuit = null;
-                this.trickWinner = null;
+                this.trickCards = []; 
                 this.roundTricks = [0, 0];
+                this.savedPhase = null; 
             }
 
-            notify(msg, duration=3000) {
+            notify(msg) {
                 UI.notifText.innerText = msg;
                 UI.banner.classList.add('show');
-                setTimeout(() => UI.banner.classList.remove('show'), duration);
+                setTimeout(() => UI.banner.classList.remove('show'), 3000);
             }
 
-            initDeck() {
-                this.deck = [];
-                SUITS.forEach(s => RANKS.forEach(r => this.deck.push(new Card(s, r))));
-                // Fisher-Yates Shuffle
-                for (let i = this.deck.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
-                    [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
-                }
-            }
+            // --- CORE FLOW ---
 
             deal() {
                 this.initDeck();
@@ -378,151 +410,123 @@
                 this.p2.hand = this.deck.splice(0, 12);
                 this.p1.sortHand();
                 this.p2.sortHand();
-                this.talon = this.deck; // 8 cards left
-                this.p1.discards = [];
-                this.p2.discards = [];
+                this.talon = this.deck;
                 
                 this.phase = 'ecarte';
-                this.turn = 0; // Elder hand goes first
+                this.turn = 0; // Elder starts
                 this.updateView();
-                this.notify("Discards: Elder Hand (Player 1) start.");
+                this.notify("Elder Hand (P1): Select discards (max 5).");
             }
 
-            /* --- Actions --- */
-            
+            initDeck() {
+                this.deck = [];
+                SUITS.forEach(s => RANKS.forEach(r => this.deck.push(new Card(s, r))));
+                for (let i = this.deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
+                }
+            }
+
+            // --- TRANSITION SYSTEM ---
+
+            // Call this whenever the active player changes
+            passTurn(nextPlayerIdx, nextPhaseName) {
+                this.turn = nextPlayerIdx;
+                this.savedPhase = nextPhaseName;
+                
+                // Show Overlay
+                this.phase = 'transition';
+                this.updateView();
+            }
+
+            confirmReveal() {
+                // Restore state
+                this.phase = this.savedPhase;
+                this.updateView();
+            }
+
+            // --- ECARTE PHASE ---
+
             discard(indices) {
                 const p = this.turn === 0 ? this.p1 : this.p2;
-                const maxDraw = this.turn === 0 ? 5 : Math.min(this.talon.length, 5); // Younger hand takes what's left up to 5 (simplified rule)
+                const maxDraw = this.turn === 0 ? 5 : Math.min(this.talon.length, 5);
 
                 if (indices.length > maxDraw) {
-                    this.notify(`You can only discard up to ${maxDraw} cards.`);
+                    this.notify(`Max discards: ${maxDraw}`);
                     return;
                 }
 
-                // Remove selected
-                // Create new hand avoiding reference issues
+                // Discard
                 const keep = p.hand.filter((_, i) => !indices.includes(i));
-                const discards = p.hand.filter((_, i) => indices.includes(i));
-                
-                // Add from talon
+                p.discards += indices.length;
+
+                // Draw
                 const draw = this.talon.splice(0, indices.length);
                 p.hand = [...keep, ...draw];
-                p.discards.push(...discards);
                 p.sortHand();
 
-                // Advance Turn
+                // Logic to switch turns
                 if (this.turn === 0) {
-                    this.turn = 1;
-                    if (this.mode === '2p') {
-                        this.phase = 'transition';
-                        this.updateView();
-                    } else {
-                        // AI Logic
-                        this.aiDiscard();
-                        this.phase = 'declare';
-                        this.notify("Discards complete. Declaration Phase.");
-                        this.turn = 0; // Back to P1
-                        this.updateView();
-                    }
+                    // P1 done -> P2's turn to discard
+                    this.passTurn(1, 'ecarte');
+                    this.notify("Pass to Player 2 for Discard (max " + Math.min(this.talon.length, 5) + ").");
                 } else {
-                    // P2 human finished
-                    this.phase = 'declare';
-                    this.turn = 0; // Back to elder
-                    this.notify("Discards complete. Declaration Phase.");
-                    this.updateView();
+                    // P2 done -> P1's turn to Declare/Lead
+                    this.declare(); 
                 }
+                this.updateView();
             }
 
-            aiDiscard() {
-                // Simple AI: Discard low cards (7, 8, 9)
-                const p2 = this.p2;
-                const toDiscard = [];
-                p2.hand.forEach((c, i) => {
-                    if (c.val < 10 && toDiscard.length < this.talon.length) toDiscard.push(i);
-                });
-                // Execute swap
-                const keep = p2.hand.filter((_, i) => !toDiscard.includes(i));
-                const draw = this.talon.splice(0, toDiscard.length);
-                p2.hand = [...keep, ...draw];
-                p2.sortHand();
-            }
+            // --- DECLARE / TRICK PREP ---
 
             declare() {
-                // Simplified: Auto-add points for demo
+                // Auto-calc points for demo
                 const p1Pts = this.p1.calcPoints();
                 const p2Pts = this.p2.calcPoints();
                 this.p1.score += p1Pts;
                 this.p2.score += p2Pts;
-                
-                this.notify(`Declarations: P1 +${p1Pts}, P2 +${p2Pts}`);
-                
-                this.phase = 'trick';
-                this.turn = 0; // Elder leads first trick
-                this.roundTricks = [0, 0];
+                this.notify(`Points declared: P1 +${p1Pts}, P2 +${p2Pts}`);
+
+                // P1 always leads first trick
+                this.passTurn(0, 'trick');
                 this.trickCards = [];
-                this.updateView();
             }
+
+            // --- TRICK PHASE ---
 
             playCard(index) {
                 const p = this.turn === 0 ? this.p1 : this.p2;
                 const card = p.hand[index];
 
-                // Validate Rule: Must follow suit
-                if (this.trickCards.length > 0) {
+                // Validation
+                if (this.trickCards.length === 1) {
                     const lead = this.trickCards[0].card;
                     const hasSuit = p.hand.some(c => c.suit === lead.suit);
                     if (hasSuit && card.suit !== lead.suit) {
-                        this.notify(`Must follow suit (${lead.suit})!`);
+                        this.notify(`Follow suit: ${lead.suit}`);
                         return;
                     }
                 }
 
-                // Play it
+                // Execute Play
                 p.hand.splice(index, 1);
                 this.trickCards.push({ player: this.turn, card: card });
                 
-                // Update Slot UI immediately
+                // Render table immediately
                 const slot = this.turn === 0 ? UI.slotP1 : UI.slotP2;
                 slot.innerHTML = '';
                 slot.appendChild(renderCard(card));
+                this.updateView();
 
-                // Check Trick End
-                if (this.trickCards.length === 2) {
-                    setTimeout(() => this.resolveTrick(), 1000);
+                // Flow Control
+                if (this.trickCards.length === 1) {
+                    // Trick ongoing, pass to next player to complete trick
+                    const nextP = 1 - this.turn;
+                    this.passTurn(nextP, 'trick');
                 } else {
-                    // Switch turn
-                    this.turn = 1 - this.turn;
-                    if (this.mode === '1p' && this.turn === 1) {
-                        setTimeout(() => this.aiPlay(), 800);
-                    } else if (this.mode === '2p') {
-                        // In strict hotseat, we'd hide here too, but for flow speed we'll keep visible 
-                        // or you could add another transition phase here for tricks.
-                        // For this demo, we keep visible flow.
-                        this.updateView();
-                    } else {
-                        this.updateView();
-                    }
+                    // Trick complete (2 cards)
+                    setTimeout(() => this.resolveTrick(), 1500);
                 }
-            }
-
-            aiPlay() {
-                const lead = this.trickCards[0].card;
-                const valid = this.p2.getPlayable(lead.suit);
-                // AI Logic: Try to win if possible, else dump low
-                let choice = valid[0]; // Default random/first
-                
-                // Simple strategy: play highest of suit if we have it
-                valid.sort((a,b) => b.val - a.val);
-                
-                if (valid[0].suit === lead.suit && valid[0].val > lead.val) {
-                    choice = valid[0]; // Win it
-                } else {
-                    choice = valid[valid.length-1]; // Lose cheaply
-                }
-                
-                // Find index in real hand
-                const idx = this.p2.hand.indexOf(choice);
-                this.playCard(idx);
             }
 
             resolveTrick() {
@@ -530,167 +534,139 @@
                 const c2 = this.trickCards[1];
                 let winnerIdx = c1.player;
 
-                if (c2.card.suit === c1.card.suit) {
-                    if (c2.card.val > c1.card.val) winnerIdx = c2.player;
+                if (c2.card.suit === c1.card.suit && c2.card.val > c1.card.val) {
+                    winnerIdx = c2.player;
                 }
-                // Note: If suits mismatch, leader (c1) wins automatically in Piquet (no trumps)
 
-                const winnerName = winnerIdx === 0 ? "Player 1" : "Player 2";
-                this.notify(`${winnerName} wins the trick!`);
-
-                // Score trick (1 pt for winning)
+                // Update scores
                 if (winnerIdx === 0) { this.p1.score++; this.roundTricks[0]++; }
                 else { this.p2.score++; this.roundTricks[1]++; }
 
-                // Reset
+                this.notify(`Trick winner: ${winnerIdx===0?'Player 1':'Player 2'}`);
+
+                // Clean up
                 this.trickCards = [];
                 UI.slotP1.innerHTML = '';
                 UI.slotP2.innerHTML = '';
-                this.turn = winnerIdx; // Winner leads next
-                
+
                 // Check Round End
                 if (this.p1.hand.length === 0 && this.p2.hand.length === 0) {
                     this.endRound();
-                } else {
-                    if (this.mode === '1p' && this.turn === 1) {
-                        setTimeout(() => this.aiPlay(), 800);
-                    }
-                    this.updateView();
-                }
-            }
-
-            endRound() {
-                // Bonus for most tricks (10 pts)
-                if (this.roundTricks[0] > this.roundTricks[1]) this.p1.score += 10;
-                else if (this.roundTricks[1] > this.roundTricks[0]) this.p2.score += 10;
-                
-                this.notify("Round Over! Dealing new hand...");
-                setTimeout(() => this.deal(), 3000);
-            }
-
-            /* --- View Updater --- */
-            updateView() {
-                // Update Text
-                UI.p1Score.innerText = this.p1.score;
-                UI.p2Score.innerText = this.p2.score;
-                UI.phase.innerText = this.phase.replace('-', ' ').toUpperCase();
-
-                // Visibility of Buttons
-                UI.btns.start1p.style.display = 'none';
-                UI.btns.start2p.style.display = 'none';
-                UI.btns.ecarte.style.display = 'none';
-                UI.btns.declare.style.display = 'none';
-                UI.hand.style.display = 'flex';
-                UI.overlay.style.display = 'none';
-
-                if (this.phase === 'transition') {
-                    UI.hand.style.display = 'none';
-                    UI.overlay.style.display = 'flex';
                     return;
                 }
 
-                if (this.phase === 'ecarte') {
-                    UI.btns.ecarte.style.display = 'inline-block';
-                } else if (this.phase === 'declare') {
-                    UI.btns.declare.style.display = 'inline-block';
-                }
+                // Set up next trick lead (winner leads)
+                this.passTurn(winnerIdx, 'trick');
+            }
 
-                // Render Hand
+            endRound() {
+                // Bonus
+                if (this.roundTricks[0] > this.roundTricks[1]) this.p1.score += 10;
+                else if (this.roundTricks[1] > this.roundTricks[0]) this.p2.score += 10;
+                
+                this.phase = 'setup';
+                this.updateView();
+                alert(`Round Over!\nP1: ${this.p1.score}\nP2: ${this.p2.score}`);
+            }
+
+            /* --- RENDERER --- */
+            updateView() {
+                // Scores & Phase
+                UI.p1Score.innerText = this.p1.score;
+                UI.p2Score.innerText = this.p2.score;
+                UI.phase.innerText = this.phase === 'transition' ? 'PASS DEVICE' : this.phase.toUpperCase();
+
+                // Talon Display (shows number of cards discarded by each player)
+                UI.talonP1.innerText = this.p1.discards;
+                UI.talonP2.innerText = this.p2.discards;
+                UI.talonP1.classList.toggle('empty', this.p1.discards === 0);
+                UI.talonP2.classList.toggle('empty', this.p2.discards === 0);
+
+
+                // Toggle Overlay
+                if (this.phase === 'transition') {
+                    UI.overlay.style.display = 'flex';
+                    UI.hand.style.display = 'none';
+                    UI.btns.ecarte.style.display = 'none';
+                    UI.btns.declare.style.display = 'none';
+                    UI.nextName.innerText = this.turn === 0 ? "Player 1" : "Player 2";
+                    return;
+                } 
+                
+                UI.overlay.style.display = 'none';
+                UI.hand.style.display = 'flex';
+
+                // Setup Phase
+                if (this.phase === 'setup') {
+                    UI.btns.start2p.style.display = 'inline-block';
+                    UI.hand.innerHTML = '<p style="opacity:0.7">Click Start New Game</p>';
+                    return;
+                }
+                UI.btns.start2p.style.display = 'none';
+
+                // Controls
+                UI.btns.ecarte.style.display = (this.phase === 'ecarte') ? 'inline-block' : 'none';
+                UI.btns.declare.style.display = (this.phase === 'declare') ? 'inline-block' : 'none';
+
+                // Render Hand (Active Player)
                 UI.hand.innerHTML = '';
                 const activeP = (this.turn === 0) ? this.p1 : this.p2;
                 
-                // In 1P mode, always show P1 hand. In 2P, show active.
-                let displayHand = activeP.hand;
-                if (this.mode === '1p') displayHand = this.p1.hand;
-
-                displayHand.forEach((card, i) => {
+                activeP.hand.forEach((card, i) => {
                     const el = renderCard(card);
                     
-                    // Interaction Logic
-                    let interactable = false;
-                    
-                    if (this.mode === '1p') {
-                        // Only P1 interactions
-                        if (this.turn === 0) interactable = true; 
+                    if (this.phase === 'declare') {
+                        el.classList.add('disabled');
                     } else {
-                        // 2P: Active player interactions
-                        interactable = true;
-                    }
-
-                    if (interactable) {
                         el.onclick = () => {
                             if (this.phase === 'ecarte') {
                                 el.classList.toggle('selected');
                             } else if (this.phase === 'trick') {
-                                // In 1P, prevent clicking if it's AI turn (safety check)
-                                if (this.mode === '1p' && this.turn === 1) return;
                                 game.playCard(i);
                             }
                         };
-                    } else {
-                        el.classList.add('disabled');
                     }
                     UI.hand.appendChild(el);
                 });
             }
         }
 
-        /* --- Helper: Render Card HTML --- */
+        /* --- DOM HELPERS --- */
         function renderCard(card) {
             const div = document.createElement('div');
             div.className = 'card';
-            
-            const suitClass = card.suit.toLowerCase();
-            const symbol = getSuitSymbol(card.suit);
-
-            div.innerHTML = `
-                <div class="rank ${suitClass}">${card.rank}</div>
-                <div class="suit ${suitClass}">${symbol}</div>
-                <div class="center-suit ${suitClass}">${symbol}</div>
-            `;
+            const s = card.suit.toLowerCase();
+            const sym = getSuitSymbol(card.suit);
+            div.innerHTML = `<div class="rank ${s}">${card.rank}</div><div class="suit ${s}">${sym}</div><div class="center-suit ${s}">${sym}</div>`;
             return div;
         }
-
-        function getSuitSymbol(suit) {
-            switch(suit) {
-                case 'Hearts': return '♥';
-                case 'Diamonds': return '♦';
-                case 'Clubs': return '♣';
-                case 'Spades': return '♠';
-            }
+        function getSuitSymbol(s) {
+            if(s==='Hearts') return '♥'; if(s==='Diamonds') return '♦';
+            if(s==='Clubs') return '♣'; return '♠';
         }
 
-        /* --- Initialization --- */
+        /* --- INIT --- */
         let game = null;
 
-        // Button Listeners
-        UI.btns.start1p.onclick = () => {
-            game = new Game('1p');
-            game.deal();
+        // Start Game button now only initiates the 2P game
+        UI.btns.start2p.onclick = () => { 
+            // Reset scores on new game
+            game = new Game(); 
+            game.p1.score = 0;
+            game.p2.score = 0;
+            game.deal(); 
         };
-        UI.btns.start2p.onclick = () => {
-            game = new Game('2p');
-            game.deal();
-        };
-
+        
         UI.btns.ecarte.onclick = () => {
-            // Find selected indices
-            const selected = [];
-            const cards = document.querySelectorAll('#hand-display .card');
-            cards.forEach((el, i) => {
-                if (el.classList.contains('selected')) selected.push(i);
+            const idxs = [];
+            document.querySelectorAll('#hand-display .card').forEach((el, i) => {
+                if (el.classList.contains('selected')) idxs.push(i);
             });
-            game.discard(selected);
+            game.discard(idxs);
         };
 
-        UI.btns.pass.onclick = () => {
-            game.phase = 'ecarte';
-            game.updateView();
-            game.notify("Player 2: Select discards.");
-        };
-
-        UI.btns.declare.onclick = () => game.declare();
-
+        UI.btns.reveal.onclick = () => game.confirmReveal();
+        
     </script>
 </body>
 </html>
