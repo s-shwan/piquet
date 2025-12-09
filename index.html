@@ -1,4 +1,504 @@
-// ... inside the PiquetGame class ...
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piquet Card Game</title>
+    <style>
+        /* --- Global & Background --- */
+        body {
+            font-family: 'Roboto', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e7040, #0a4020); /* Darker, richer green felt */
+            color: #f0f0f0; /* Soft white text */
+            margin: 0;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        h1 {
+            color: #ffcc00; /* Gold/Yellow accent */
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+            margin-bottom: 25px;
+            font-size: 2.5em;
+            letter-spacing: 1px;
+        }
+
+        /* --- Game Containers --- */
+        #scores {
+            font-size: 1.6em;
+            font-weight: 500;
+            background: rgba(0,0,0,0.5); /* Semi-transparent black */
+            padding: 12px 25px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            border: 1px solid #ffcc00;
+            box-shadow: 0 0 10px rgba(255, 204, 0, 0.3);
+        }
+        #game-area {
+            background: rgba(255,255,255,0.08); /* Slightly lighter transparent area */
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+            max-width: 900px;
+            width: 100%;
+            text-align: center;
+        }
+        #current-player {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #ffcc00;
+        }
+        .hand {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+            margin: 25px 0;
+        }
+        #trick-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 160px;
+            gap: 30px;
+            margin: 20px 0;
+            border: 2px dashed #ffcc0055; /* Lighter dashed border */
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 12px;
+        }
+
+        /* --- Card Styling --- */
+        .card {
+            background: linear-gradient(to bottom right, #ffffff, #f0f0f0);
+            color: #1a1a1a;
+            border: 1px solid #888;
+            border-radius: 10px;
+            padding: 10px;
+            width: 90px;
+            height: 130px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            font-size: 1em;
+            text-align: center;
+            position: relative;
+            transform-style: preserve-3d;
+        }
+        .card:hover:not(.disabled) {
+            transform: translateY(-8px) rotateX(5deg);
+            box-shadow: 0 12px 20px rgba(0,0,0,0.6);
+        }
+        .card.selected {
+            border-color: #ffcc00;
+            box-shadow: 0 0 15px #ffcc00;
+            transform: translateY(-10px);
+        }
+        .card.disabled {
+            opacity: 0.5;
+            cursor: default;
+            box-shadow: none;
+        }
+        .card .rank {
+            font-weight: 900;
+            font-size: 1.4em;
+            line-height: 1;
+        }
+        .card .suit {
+            font-size: 1.8em;
+        }
+
+        /* Card Colors */
+        .hearts, .diamonds { color: #cc0000; } /* Deeper red */
+        .clubs, .spades { color: #1a1a1a; }
+
+        /* --- Controls & Results --- */
+        button {
+            background: #ffcc00;
+            color: #333;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px #c2a300; /* 3D effect */
+            position: relative;
+            top: 0;
+        }
+        button:hover:not(:disabled) {
+            background: #ffe066;
+            top: -2px;
+            box-shadow: 0 6px #c2a300;
+        }
+        button:active:not(:disabled) {
+            top: 2px;
+            box-shadow: 0 2px #c2a300;
+        }
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+        #trick-result {
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #ffcc00;
+            padding: 10px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 5px;
+        }
+
+        /* --- Responsive Adjustments --- */
+        @media (max-width: 600px) {
+            .card { width: 70px; height: 100px; padding: 8px; }
+            .hand { gap: 8px; }
+            #scores { font-size: 1.2em; padding: 8px 15px; }
+            button { padding: 10px 20px; font-size: 1em; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Piquet Card Game</h1>
+    <div id="scores">Player 1: 0 | Player 2 (AI): 0</div>
+    <div id="game-area">
+        <div id="current-player">Select Game Mode</div>
+
+        <div id="trick-area">
+            <div id="p1-trick-card" class="card disabled" style="display:none;"></div>
+            <div id="p2-trick-card" class="card disabled" style="display:none;"></div>
+        </div>
+
+        <div id="hand-display" class="hand">
+            <p style="color:white; font-size: 1.2em;">Click a Start button to begin.</p>
+        </div>
+        
+        <div id="controls">
+            <button id="start-1p-btn">Start 1-Player (vs AI)</button>
+            <button id="start-2p-btn">Start 2-Player Game</button>
+            
+            <button id="ecarte-btn" style="display:none;">Discard Selected Cards</button>
+            <button id="declare-btn" style="display:none;">Declare Combinations (Simplified)</button>
+        </div>
+
+        <div id="trick-result"></div>
+    </div>
+
+    <script>
+        // Constants
+        const SUITS = ['Hearts', 'Diamonds', 'Clubs', 'Spades'];
+        const RANKS = ['7', '8', '9', '10', 'Jack', 'Queen', 'King', 'Ace'];
+        const RANK_VALUES = {'7':7, '8':8, '9':9, '10':10, 'Jack':11, 'Queen':12, 'King':13, 'Ace':14};
+
+        // Classes
+        class Card {
+            constructor(suit, rank) {
+                this.suit = suit;
+                this.rank = rank;
+                this.value = RANK_VALUES[rank];
+            }
+            toString() { return `${this.rank} of ${this.suit}`; }
+        }
+
+        class Deck {
+            constructor() {
+                this.cards = [];
+                for (let suit of SUITS) {
+                    for (let rank of RANKS) {
+                        this.cards.push(new Card(suit, rank));
+                    }
+                }
+            }
+            shuffle() { this.cards.sort(() => Math.random() - 0.5); }
+            deal(num) { return this.cards.splice(0, num); }
+        }
+
+        class Player {
+            constructor(name) {
+                this.name = name;
+                this.hand = [];
+                this.score = 0;
+                this.discards = [];
+                this.index = 0; // Will be set during game start
+            }
+            addCards(cards) { 
+                this.hand = [...this.hand, ...cards].sort((a,b) => b.value - a.value);
+            }
+            declareCombinations() {
+                let points = 0;
+                for (let suit of SUITS) {
+                    let suitCards = this.hand.filter(c => c.suit === suit).sort((a,b) => a.value - b.value);
+                    for (let i = 0; i < suitCards.length - 2; i++) {
+                        if (suitCards[i+1].value === suitCards[i].value + 1 && suitCards[i+2].value === suitCards[i].value + 2) {
+                            points += 10;
+                        }
+                    }
+                }
+                return points;
+            }
+            getLegalCards(ledSuit) {
+                if (!ledSuit) return this.hand;
+                const followCards = this.hand.filter(card => card.suit === ledSuit);
+                return followCards.length > 0 ? followCards : this.hand; 
+            }
+        }
+
+        // Game class
+        class PiquetGame {
+            constructor(isTwoPlayer = false) {
+                this.isTwoPlayer = isTwoPlayer;
+                this.players = [
+                    new Player('Player 1'), 
+                    new Player(isTwoPlayer ? 'Player 2' : 'Player 2 (AI)')
+                ];
+                this.players[0].index = 0;
+                this.players[1].index = 1;
+
+                this.leader = 0;
+                this.declarer = 0;
+                this.tricksWon = [0, 0];
+                this.trickCards = [];
+                this.ledSuit = null;
+                this.talon = [];
+                this.phase = 'start';
+                this.currentPlayerIndex = 0;
+                this.updateUI();
+            }
+
+            startRound() {
+                this.deck = new Deck();
+                this.deck.shuffle();
+                this.players.forEach(p => p.hand = this.deck.deal(12));
+                this.talon = this.deck.cards;
+                this.phase = 'ecarte';
+                this.declarer = 0;
+                this.leader = 0;
+                this.tricksWon = [0, 0];
+                this.trickCards = [];
+                this.ledSuit = null;
+                this.players.forEach(p => p.discards = []);
+                this.currentPlayerIndex = 0; 
+                this.updateUI();
+            }
+            
+            switchActivePlayer() {
+                this.currentPlayerIndex = 1 - this.currentPlayerIndex;
+                this.players[0].discards = []; 
+                this.players[1].discards = []; 
+                this.updateUI();
+            }
+
+            exchangeCards(playerIndex, cardsToDiscard) {
+                let player = this.players[playerIndex];
+                let drawLimit = playerIndex === 0 ? 5 : this.talon.length;
+
+                if (cardsToDiscard.length > drawLimit) {
+                    alert(`${player.name} can only discard/draw up to ${drawLimit} cards.`);
+                    return false;
+                }
+
+                player.hand = player.hand.filter(card => !cardsToDiscard.includes(card));
+                player.addCards(this.talon.splice(0, cardsToDiscard.length));
+                player.discards = cardsToDiscard; 
+                
+                return true;
+            }
+
+            doEcarte() {
+                // Determine which player is currently discarding based on game mode/phase
+                const declarerIndex = this.isTwoPlayer ? this.currentPlayerIndex : this.declarer;
+                let player = this.players[declarerIndex];
+
+                let handDisplay = document.getElementById('hand-display');
+                let selectedCards = player.hand.filter((c, idx) => handDisplay.children[idx] && handDisplay.children[idx].classList.contains('selected'));
+                
+                // P1 (Elder Hand) can pass by discarding 0 cards
+                if (declarerIndex === 0 && selectedCards.length === 0) {
+                    this.exchangeCards(0, []);
+                    this.declarer = 1; // Move to Younger Hand's turn
+                    if (this.isTwoPlayer) {
+                        this.switchActivePlayer(); // Switch to P2's turn
+                    } else {
+                        this.autoEcarte(); // AI Ecarte
+                    }
+                    return;
+                }
+
+                if (selectedCards.length === 0) {
+                    alert(`Select cards to discard, or if you are Player 1 (Elder Hand), click "Discard" to pass.`);
+                    return;
+                }
+
+                if (this.exchangeCards(declarerIndex, selectedCards)) {
+                    
+                    if (this.declarer === 0) {
+                        // P1 (Elder Hand) is done, move to P2
+                        this.declarer = 1;
+                        if (this.isTwoPlayer) {
+                            this.switchActivePlayer(); // Switch to P2's turn
+                        } else {
+                            this.autoEcarte(); // AI Ecarte
+                        }
+                    } else {
+                        // P2 (Younger Hand) is done, move to declarations
+                        this.phase = 'declare';
+                        this.hideEcarteControls();
+                        document.getElementById('declare-btn').style.display = 'block';
+                        this.updateUI();
+                    }
+                }
+            }
+
+            autoEcarte() {
+                if (!this.isTwoPlayer && this.declarer === 1 && this.phase === 'ecarte') {
+                    let p2 = this.players[1];
+                    let cardsToDiscard = [];
+                    if (this.talon.length > 0) {
+                        cardsToDiscard = p2.hand.slice(p2.hand.length - 2); 
+                    } 
+                    const actualDiscards = cardsToDiscard.slice(0, this.talon.length);
+                    this.exchangeCards(1, actualDiscards); 
+
+                    this.phase = 'declare';
+                    this.hideEcarteControls();
+                    document.getElementById('declare-btn').style.display = 'block';
+                    this.updateUI();
+                }
+            }
+
+            declarePhase() {
+                document.getElementById('trick-result').innerText = '';
+                this.players.forEach(p => {
+                    let points = p.declareCombinations();
+                    p.score += points;
+                    document.getElementById('trick-result').innerText += `${p.name} declares ${points} points. `;
+                });
+                
+                this.phase = 'tricks';
+                document.getElementById('declare-btn').style.display = 'none';
+                this.currentPlayerIndex = this.leader;
+                this.updateUI();
+                
+                if (!this.isTwoPlayer && this.leader === 1) {
+                    this.doTrickPlay();
+                }
+            }
+            
+            doTrickPlay() {
+                document.getElementById('trick-result').innerText = '';
+                
+                if (this.players[0].hand.length === 0) {
+                    this.endRound();
+                    return;
+                }
+
+                if (!this.isTwoPlayer && this.leader === 1) {
+                    // AI turn (Player 2)
+                    let p2 = this.players[1];
+                    let legalCards = p2.getLegalCards(this.ledSuit);
+                    let cardToPlay = legalCards[Math.floor(Math.random() * legalCards.length)];
+                    let idx = p2.hand.findIndex(c => c === cardToPlay);
+                    this.playCard(1, idx);
+                }
+            }
+
+            playCard(playerIndex, cardIndex) {
+                // Safety check to ensure correct player is playing in 2P mode
+                if (this.isTwoPlayer && this.phase === 'tricks' && playerIndex !== this.currentPlayerIndex) {
+                    return;
+                }
+                
+                let player = this.players[playerIndex];
+                let card = player.hand.splice(cardIndex, 1)[0];
+                
+                if (this.trickCards.length === 0) {
+                    this.ledSuit = card.suit;
+                    this.trickCards.push({card: card, player: playerIndex, isLead: true});
+                    
+                    if (this.isTwoPlayer) {
+                        this.switchActivePlayer();
+                    }
+                } else {
+                    this.trickCards.push({card: card, player: playerIndex, isLead: false});
+                    
+                    if (this.trickCards.length === 2) {
+                        setTimeout(() => this.resolveTrick(), 1000);
+                    }
+                }
+
+                this.updateUI();
+                
+                if (!this.isTwoPlayer && playerIndex === 0 && this.trickCards.length === 1) {
+                    this.doTrickPlay(); 
+                }
+            }
+            
+            resolveTrick() {
+                let card1 = this.trickCards[0];
+                let card2 = this.trickCards[1];
+                let winner = card1.player;
+                
+                if (card2.card.suit === card1.card.suit && card2.card.value > card1.card.value) {
+                    winner = card2.player;
+                }
+                
+                this.tricksWon[winner]++;
+                this.players[winner].score++;
+                
+                if (this.players[0].hand.length === 0) {
+                    this.players[winner].score += 10; 
+                    this.endRound();
+                } else {
+                    document.getElementById('trick-result').innerText = `${this.players[winner].name} wins the trick! (P1: ${this.tricksWon[0]} vs P2: ${this.tricksWon[1]})`;
+                    this.leader = winner;
+                    this.trickCards = [];
+                    this.ledSuit = null;
+                    this.currentPlayerIndex = winner; 
+                    this.updateUI();
+                    
+                    if (!this.isTwoPlayer && this.leader === 1) {
+                        this.doTrickPlay(); 
+                    }
+                }
+            }
+
+            endRound() {
+                if (this.tricksWon[0] === 12) {
+                    this.players[0].score += 40;
+                } else if (this.tricksWon[1] === 12) {
+                    this.players[1].score += 40;
+                } else {
+                    if (this.tricksWon[0] > this.tricksWon[1]) {
+                         this.players[0].score += 10;
+                    } else if (this.tricksWon[1] > this.tricksWon[0]) {
+                         this.players[1].score += 10;
+                    } 
+                }
+
+                this.updateUI();
+                alert(`Round Over! ${this.players[0].name}: ${this.players[0].score} | ${this.players[1].name}: ${this.players[1].score}`);
+                
+                if (Math.max(...this.players.map(p => p.score)) >= 100) {
+                    alert(`${this.players.find(p => p.score >= 100).name} wins the game!`);
+                } else {
+                    // Start a new round with the same mode
+                    this.startRound();
+                }
+            }
+            
+            hideEcarteControls() {
+                 document.getElementById('ecarte-btn').style.display = 'none';
+            }
 
             updateUI() {
                 const p1 = this.players[0];
@@ -10,17 +510,18 @@
                 if (this.isTwoPlayer) {
                     activePlayer = this.players[this.currentPlayerIndex];
                 } else {
-                    // In 1P mode, the HAND DISPLAY should always be P1's hand.
-                    activePlayer = p1; 
+                    activePlayer = p1; // Only P1 is active in 1P mode
                 }
-                
-                let playerToDisplayHand = p1; // Always show P1's hand
                 let isP1ActiveHand = activePlayer === p1;
 
                 // --- Start Screen Logic ---
                 if (this.phase === 'start') {
-                    // ... (rest of start screen logic remains the same)
-                    // ...
+                    document.getElementById('current-player').innerText = 'Select Game Mode';
+                    document.getElementById('ecarte-btn').style.display = 'none';
+                    document.getElementById('declare-btn').style.display = 'none';
+                    document.getElementById('start-1p-btn').style.display = 'block';
+                    document.getElementById('start-2p-btn').style.display = 'block';
+                    document.getElementById('hand-display').innerHTML = '<p style="color:white; font-size: 1.2em;">Click a Start button to begin.</p>';
                     return;
                 }
 
@@ -28,9 +529,22 @@
                 document.getElementById('start-1p-btn').style.display = 'none';
                 document.getElementById('start-2p-btn').style.display = 'none';
 
-                // --- Ecarte/Trick Controls Visibility (remains the same) ---
-                // ...
-                // ...
+                // --- Ecarte/Trick Controls Visibility ---
+                const isP1EcarteTurn = this.phase === 'ecarte' && this.declarer === 0;
+                const isP2EcarteTurn = this.isTwoPlayer && this.phase === 'ecarte' && this.declarer === 1;
+
+                if (this.phase === 'ecarte') {
+                    // Only show discard button if it's the current player's turn to discard
+                    document.getElementById('ecarte-btn').style.display = (isP1EcarteTurn && isP1ActiveHand) || (isP2EcarteTurn && !isP1ActiveHand) ? 'block' : 'none';
+                    document.getElementById('declare-btn').style.display = 'none';
+                } else if (this.phase === 'declare') {
+                    document.getElementById('ecarte-btn').style.display = 'none';
+                    document.getElementById('declare-btn').style.display = 'block';
+                } else {
+                    document.getElementById('ecarte-btn').style.display = 'none';
+                    document.getElementById('declare-btn').style.display = 'none';
+                }
+
 
                 document.getElementById('current-player').innerText = `${activePlayer.name}'s turn (${this.phase})${this.isTwoPlayer && this.phase === 'ecarte' ? ' - Discard Phase' : ''}`;
                 
@@ -38,44 +552,100 @@
                 handDiv.innerHTML = '';
                 
                 // --- Display and Interaction Logic ---
-                // Always display P1's hand in 1P mode, display active player's hand in 2P mode.
-                if (this.isTwoPlayer || playerToDisplayHand === p1) {
-                    let player = this.isTwoPlayer ? activePlayer : p1; // P1 is the player for display in 1P mode
-                    
-                    // Determine if the *displayed* hand is the one that can act.
-                    const canAct = (this.isTwoPlayer && isP1ActiveHand) || (!this.isTwoPlayer); 
-
+                if (isP1ActiveHand || this.isTwoPlayer) {
+                    let player = activePlayer;
                     let legalCards = this.phase === 'tricks' ? player.getLegalCards(this.ledSuit) : player.hand;
                     
                     player.hand.forEach((card, idx) => {
                         let cardDiv = this.createCardDiv(card);
                         
-                        if (this.phase === 'ecarte' && canAct) {
-                            // Only Player 1 handles discards in 1P mode, P2 is auto
+                        if (this.phase === 'ecarte') {
                             cardDiv.onclick = () => this.selectDiscard(player, cardDiv, card);
                             if (playerDiscardsIncludes(player.discards, card)) cardDiv.classList.add('selected');
                         } else if (this.phase === 'tricks') {
-                            if (!this.isTwoPlayer && this.leader === 1) {
-                                // If 1P mode and AI leads, disable P1's cards
-                                cardDiv.classList.add('disabled');
-                                cardDiv.onclick = null;
-                            } else if (legalCards.includes(card) && (this.isTwoPlayer ? isP1ActiveHand : true)) {
-                                // P1's turn to play (1P mode) OR P1's turn to play (2P mode)
+                            if (legalCards.includes(card)) {
                                 cardDiv.onclick = () => this.playCard(player.index, idx);
                             } else {
                                 cardDiv.classList.add('disabled');
-                                cardDiv.onclick = null;
                             }
-                        } else {
-                            // Disable if P2's turn in 2P discard phase
-                            cardDiv.classList.add('disabled');
-                            cardDiv.onclick = null;
                         }
                         handDiv.appendChild(cardDiv);
                     });
                 }
+
+                // Update Trick Area
+                const p1TrickDiv = document.getElementById('p1-trick-card');
+                const p2TrickDiv = document.getElementById('p2-trick-card');
+                p1TrickDiv.style.display = 'none';
+                p2TrickDiv.style.display = 'none';
                 
-                // ... (rest of updateUI logic remains the same, updating trick area etc.)
-                // ...
+                this.trickCards.forEach(tc => {
+                    let div = tc.player === 0 ? p1TrickDiv : p2TrickDiv;
+                    this.renderCardDiv(div, tc.card);
+                    div.style.display = 'flex';
+                });
             }
-// ...
+            
+            // --- UI Helpers ---
+
+            createCardDiv(card) {
+                let cardDiv = document.createElement('div');
+                cardDiv.className = 'card';
+                this.renderCardDiv(cardDiv, card);
+                return cardDiv;
+            }
+
+            renderCardDiv(div, card) {
+                div.innerHTML = `
+                    <div class="rank">${card.rank}</div>
+                    <div class="suit ${card.suit.toLowerCase()}">${getSuitSymbol(card.suit)}</div>
+                `;
+                div.classList.remove('hearts', 'diamonds', 'clubs', 'spades');
+                div.classList.add(card.suit.toLowerCase());
+            }
+            
+            selectDiscard(player, cardDiv, card) {
+                let existingDiscard = player.discards.find(d => d.rank === card.rank && d.suit === card.suit);
+                
+                if (existingDiscard) {
+                    cardDiv.classList.remove('selected');
+                    player.discards = player.discards.filter(d => !(d.rank === card.rank && d.suit === card.suit));
+                } else if (player.discards.length < 5) {
+                    cardDiv.classList.add('selected');
+                    player.discards.push(card);
+                } else {
+                    alert('You can discard up to 5 cards.');
+                }
+            }
+        }
+
+        // Helper functions
+        function getSuitSymbol(suit) {
+            const symbols = { 'Hearts': '♥', 'Diamonds': '♦', 'Clubs': '♣', 'Spades': '♠' };
+            return symbols[suit] || suit;
+        }
+
+        function playerDiscardsIncludes(discards, card) {
+            return discards.some(d => d.rank === card.rank && d.suit === card.suit);
+        }
+
+        // --- Initialization and Event Listeners ---
+
+        let game;
+
+        function startGame(isTwoPlayer) {
+            game = new PiquetGame(isTwoPlayer);
+        }
+
+        // Initialize to start screen state
+        startGame(false); 
+
+        document.getElementById('ecarte-btn').onclick = () => game.doEcarte();
+        document.getElementById('declare-btn').onclick = () => game.declarePhase();
+
+        // Event listeners for mode selection
+        document.getElementById('start-1p-btn').onclick = () => startGame(false);
+        document.getElementById('start-2p-btn').onclick = () => startGame(true);
+    </script>
+</body>
+</html>
