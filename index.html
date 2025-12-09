@@ -229,7 +229,7 @@
                 this.hand = [];
                 this.score = 0;
                 this.discards = [];
-                this.index = 0; // Will be set during game start
+                this.index = 0;
             }
             addCards(cards) { 
                 this.hand = [...this.hand, ...cards].sort((a,b) => b.value - a.value);
@@ -272,7 +272,7 @@
                 this.talon = [];
                 this.phase = 'start';
                 this.currentPlayerIndex = 0;
-                this.updateUI();
+                // updateUI is called immediately below in the initialization block
             }
 
             startRound() {
@@ -322,7 +322,6 @@
                 let selectedCards = player.hand.filter((c, idx) => handDisplay.children[idx] && handDisplay.children[idx].classList.contains('selected'));
                 
                 if (declarerIndex === 0 && selectedCards.length === 0) {
-                    // P1 (Elder Hand) can pass
                     this.exchangeCards(0, []);
                     this.declarer = 1; 
                     if (this.isTwoPlayer) {
@@ -341,7 +340,6 @@
                 if (this.exchangeCards(declarerIndex, selectedCards)) {
                     
                     if (this.declarer === 0) {
-                        // P1 (Elder Hand) is done, move to P2
                         this.declarer = 1;
                         if (this.isTwoPlayer) {
                             this.switchActivePlayer();
@@ -349,7 +347,6 @@
                             this.autoEcarte();
                         }
                     } else {
-                        // P2 (Younger Hand) is done, move to declarations
                         this.phase = 'declare';
                         this.hideEcarteControls();
                         document.getElementById('declare-btn').style.display = 'block';
@@ -402,7 +399,6 @@
                 }
 
                 if (!this.isTwoPlayer && this.leader === 1) {
-                    // AI turn (Player 2)
                     let p2 = this.players[1];
                     let legalCards = p2.getLegalCards(this.ledSuit);
                     let cardToPlay = legalCards[Math.floor(Math.random() * legalCards.length)];
@@ -506,11 +502,10 @@
                 if (this.isTwoPlayer) {
                     activePlayer = this.players[this.currentPlayerIndex];
                 } else {
-                    // In 1P mode, the HAND DISPLAY should always be P1's hand.
                     activePlayer = p1; 
                 }
                 
-                let playerToDisplayHand = p1; // Always show P1's hand
+                let playerToDisplayHand = p1;
                 let isP1ActiveHand = activePlayer === p1;
 
                 // --- Start Screen Logic ---
@@ -576,7 +571,7 @@
                                 cardDiv.onclick = null;
                             }
                         } else {
-                            // Disable if P2's turn in 2P discard phase
+                            // Disable if not the active player's turn to act
                             cardDiv.classList.add('disabled');
                             cardDiv.onclick = null;
                         }
@@ -645,11 +640,12 @@
         let game;
 
         function startGame(isTwoPlayer) {
+            // Create new game instance and immediately start the round
             game = new PiquetGame(isTwoPlayer);
             game.startRound();
         }
 
-        // Initialize to start screen state
+        // Initialize game structure and UI to the start phase
         game = new PiquetGame(false); 
         game.phase = 'start';
         game.updateUI();
@@ -658,9 +654,9 @@
         document.getElementById('ecarte-btn').onclick = () => game.doEcarte();
         document.getElementById('declare-btn').onclick = () => game.declarePhase();
 
-        // Event listeners for mode selection
-        document.getElementById('start-1p-btn').onclick = () => startGame(false); // Start 1-Player (vs AI)
-        document.getElementById('start-2p-btn').onclick = () => startGame(true);  // Start 2-Player (Hotseat)
+        // Event listeners for mode selection (Calling startGame with the mode)
+        document.getElementById('start-1p-btn').onclick = () => startGame(false); 
+        document.getElementById('start-2p-btn').onclick = () => startGame(true);
     </script>
 </body>
 </html>
