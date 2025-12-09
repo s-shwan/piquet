@@ -187,7 +187,7 @@
             <button id="start-1p-btn">Start 1-Player (vs AI)</button>
             <button id="start-2p-btn">Start 2-Player Game</button>
             
-            <button id="ecarte-btn" style="display:none;">Discard Selected Cards</button>
+            <button id="pass-2p-btn" style="display:none;">Pass/Reveal Player 2's Discard Hand</button> <button id="ecarte-btn" style="display:none;">Discard Selected Cards</button>
             <button id="declare-btn" style="display:none;">Declare Combinations (Simplified)</button>
         </div>
 
@@ -237,7 +237,7 @@
             declareCombinations() {
                 let points = 0;
                 for (let suit of SUITS) {
-                    let suitCards = this.hand.filter(c => c.suit === suit).sort((a,b) => a.value - b.value);
+                    let suitCards = this.hand.filter(c => c.suit === suit).sort((a,b) => a.value - a.value);
                     for (let i = 0; i < suitCards.length - 2; i++) {
                         if (suitCards[i+1].value === suitCards[i].value + 1 && suitCards[i+2].value === suitCards[i].value + 2) {
                             points += 10;
@@ -272,7 +272,6 @@
                 this.talon = [];
                 this.phase = 'start';
                 this.currentPlayerIndex = 0;
-                // updateUI is called immediately below in the initialization block
             }
 
             startRound() {
@@ -291,6 +290,7 @@
                 this.updateUI();
             }
             
+            // This function is now mainly used for 1P mode turn control
             switchActivePlayer() {
                 this.currentPlayerIndex = 1 - this.currentPlayerIndex;
                 this.players[0].discards = []; 
@@ -321,37 +321,51 @@
                 let handDisplay = document.getElementById('hand-display');
                 let selectedCards = player.hand.filter((c, idx) => handDisplay.children[idx] && handDisplay.children[idx].classList.contains('selected'));
                 
-                if (declarerIndex === 0 && selectedCards.length === 0) {
-                    this.exchangeCards(0, []);
-                    this.declarer = 1; 
-                    if (this.isTwoPlayer) {
-                        this.switchActivePlayer();
-                    } else {
-                        this.autoEcarte();
-                    }
-                    return;
-                }
-
+                // --- Pass/Discard Check ---
                 if (selectedCards.length === 0) {
+                    // P1 (Elder Hand) can pass by discarding 0 cards
+                    if (declarerIndex === 0) {
+                        this.exchangeCards(0, []);
+                        this.declarer = 1; 
+                        if (this.isTwoPlayer) {
+                            this.phase = 'ecarte-transition'; // P1 done, trigger screen transition
+                        } else {
+                            this.autoEcarte();
+                        }
+                        this.updateUI();
+                        return;
+                    }
                     alert(`Select cards to discard, or if you are Player 1 (Elder Hand), click "Discard" to pass.`);
                     return;
                 }
+                // --- End Pass/Discard Check ---
 
                 if (this.exchangeCards(declarerIndex, selectedCards)) {
                     
                     if (this.declarer === 0) {
+                        // P1 (Elder Hand) is done, move to P2's opportunity
                         this.declarer = 1;
                         if (this.isTwoPlayer) {
-                            this.switchActivePlayer();
+                            this.phase = 'ecarte-transition'; // P1 done, trigger screen transition
                         } else {
                             this.autoEcarte();
                         }
                     } else {
+                        // P2 (Younger Hand) is done, move to declarations
                         this.phase = 'declare';
                         this.hideEcarteControls();
                         document.getElementById('declare-btn').style.display = 'block';
-                        this.updateUI();
                     }
+                    this.updateUI();
+                }
+            }
+            
+            // New function to handle the hotseat screen transition
+            passToPlayer2() {
+                if (this.phase === 'ecarte-transition') {
+                    this.currentPlayerIndex = 1; // Set active player to P2
+                    this.phase = 'ecarte'; // Return to regular ecarte for P2
+                    this.updateUI();
                 }
             }
 
@@ -491,6 +505,7 @@
             
             hideEcarteControls() {
                  document.getElementById('ecarte-btn').style.display = 'none';
+                 document.getElementById('pass-2p-btn').style.display = 'none';
             }
 
             updateUI() {
@@ -511,7 +526,7 @@
                 // --- Start Screen Logic ---
                 if (this.phase === 'start') {
                     document.getElementById('current-player').innerText = 'Select Game Mode';
-                    document.getElementById('ecarte-btn').style.display = 'none';
+                    this.hideEcarteControls();
                     document.getElementById('declare-btn').style.display = 'none';
                     document.getElementById('start-1p-btn').style.display = 'block';
                     document.getElementById('start-2p-btn').style.display = 'block';
@@ -523,60 +538,82 @@
                 document.getElementById('start-1p-btn').style.display = 'none';
                 document.getElementById('start-2p-btn').style.display = 'none';
 
-                // --- Ecarte/Trick Controls Visibility ---
-                const isP1EcarteTurn = this.phase === 'ecarte' && this.declarer === 0;
-                const isP2EcarteTurn = this.isTwoPlayer && this.phase === 'ecarte' && this.declarer === 1;
-
+                // --- Control Visibility ---
+                this.hideEcarteControls(); 
+                document.getElementById('declare-btn').style.display = 'none';
+                
+                if (this.phase === 'ecarte-transition') {
+                    // Hotseat transition phase: Hide all cards, show pass button
+                    document.getElementById('current-player').innerText = "Player 1 turn finished. Ready to pass to Player 2?";
+                    document.getElementById('pass-2p-btn').style.display = 'block';
+                    document.getElementById('hand-display').innerHTML = '<p style="color:red; font-size: 1.5em; font-weight: bold;">PLAYER 1: PLEASE PASS THE DEVICE. DO NOT LOOK.</p>';
+                    return;
+                }
+                
                 if (this.phase === 'ecarte') {
-                    document.getElementById('ecarte-btn').style.display = (isP1EcarteTurn && isP1ActiveHand) || (isP2EcarteTurn && !isP1ActiveHand) ? 'block' : 'none';
-                    document.getElementById('declare-btn').style.display = 'none';
+                    const isP1EcarteTurn = this.declarer === 0;
+                    
+                    // Show discard button only if it's the current player's *active* discard turn
+                    if (this.isTwoPlayer) {
+                        if (this.currentPlayerIndex === 0 && isP1EcarteTurn) { // P1's Discard
+                            document.getElementById('ecarte-btn').style.display = 'block';
+                        } else if (this.currentPlayerIndex === 1 && !isP1EcarteTurn) { // P2's Discard
+                            document.getElementById('ecarte-btn').style.display = 'block';
+                        }
+                    } else if (isP1EcarteTurn || this.declarer === 1) {
+                         // In 1P mode, P1 always sees/acts on their cards until AI acts
+                        document.getElementById('ecarte-btn').style.display = 'block';
+                    }
+                    
                 } else if (this.phase === 'declare') {
-                    document.getElementById('ecarte-btn').style.display = 'none';
                     document.getElementById('declare-btn').style.display = 'block';
-                } else {
-                    document.getElementById('ecarte-btn').style.display = 'none';
-                    document.getElementById('declare-btn').style.display = 'none';
                 }
 
 
-                document.getElementById('current-player').innerText = `${activePlayer.name}'s turn (${this.phase})${this.isTwoPlayer && this.phase === 'ecarte' ? ' - Discard Phase' : ''}`;
+                // --- Hand Display and Interaction Logic ---
+                let playerDisplaying = this.isTwoPlayer ? activePlayer : p1;
+                let isDisplayedPlayerActive = this.isTwoPlayer ? (playerDisplaying === activePlayer) : true;
                 
-                let handDiv = document.getElementById('hand-display');
                 handDiv.innerHTML = '';
                 
-                // --- Display and Interaction Logic ---
-                if (this.isTwoPlayer || playerToDisplayHand === p1) {
-                    let player = this.isTwoPlayer ? activePlayer : p1;
+                if (this.isTwoPlayer || playerDisplaying === p1) {
+                    let player = playerDisplaying;
                     
-                    const canAct = (this.isTwoPlayer && isP1ActiveHand) || (!this.isTwoPlayer); 
-
-                    let legalCards = this.phase === 'tricks' ? player.getLegalCards(this.ledSuit) : player.hand;
-                    
-                    player.hand.forEach((card, idx) => {
-                        let cardDiv = this.createCardDiv(card);
+                    // In 2P mode, only show the cards if it's the current player's turn to discard/play
+                    if (!this.isTwoPlayer || isDisplayedPlayerActive) {
+                        let legalCards = this.phase === 'tricks' ? player.getLegalCards(this.ledSuit) : player.hand;
                         
-                        if (this.phase === 'ecarte' && canAct) {
-                            cardDiv.onclick = () => this.selectDiscard(player, cardDiv, card);
-                            if (playerDiscardsIncludes(player.discards, card)) cardDiv.classList.add('selected');
-                        } else if (this.phase === 'tricks') {
-                            if (!this.isTwoPlayer && this.leader === 1) {
-                                // If 1P mode and AI leads, disable P1's cards
-                                cardDiv.classList.add('disabled');
-                                cardDiv.onclick = null;
-                            } else if (legalCards.includes(card) && (this.isTwoPlayer ? isP1ActiveHand : true)) {
-                                // P1's turn to play (1P mode) OR P1's turn to play (2P mode)
-                                cardDiv.onclick = () => this.playCard(player.index, idx);
+                        player.hand.forEach((card, idx) => {
+                            let cardDiv = this.createCardDiv(card);
+                            
+                            // Determine if the card should be clickable (canAct)
+                            let canAct = false;
+                            
+                            if (this.phase === 'ecarte' && isDisplayedPlayerActive) {
+                                canAct = true;
+                                cardDiv.onclick = () => this.selectDiscard(player, cardDiv, card);
+                                if (playerDiscardsIncludes(player.discards, card)) cardDiv.classList.add('selected');
+
+                            } else if (this.phase === 'tricks' && isDisplayedPlayerActive) {
+                                
+                                if (!this.isTwoPlayer && this.leader === 1) {
+                                    // 1P mode: AI is leading (P1's cards are visible but disabled)
+                                    cardDiv.classList.add('disabled');
+                                    cardDiv.onclick = null;
+                                } else if (legalCards.includes(card)) {
+                                    canAct = true;
+                                    cardDiv.onclick = () => this.playCard(player.index, idx);
+                                } else {
+                                    cardDiv.classList.add('disabled');
+                                }
                             } else {
+                                // If 2P mode and it's not the displayed player's turn (or any other non-active state)
                                 cardDiv.classList.add('disabled');
-                                cardDiv.onclick = null;
                             }
-                        } else {
-                            // Disable if not the active player's turn to act
-                            cardDiv.classList.add('disabled');
-                            cardDiv.onclick = null;
-                        }
-                        handDiv.appendChild(cardDiv);
-                    });
+
+                            handDiv.appendChild(cardDiv);
+                        });
+                    }
                 }
 
                 // Update Trick Area
@@ -640,7 +677,6 @@
         let game;
 
         function startGame(isTwoPlayer) {
-            // Create new game instance and immediately start the round
             game = new PiquetGame(isTwoPlayer);
             game.startRound();
         }
@@ -653,8 +689,9 @@
         // Event listeners for game actions
         document.getElementById('ecarte-btn').onclick = () => game.doEcarte();
         document.getElementById('declare-btn').onclick = () => game.declarePhase();
+        document.getElementById('pass-2p-btn').onclick = () => game.passToPlayer2(); // NEW LISTENER
 
-        // Event listeners for mode selection (Calling startGame with the mode)
+        // Event listeners for mode selection
         document.getElementById('start-1p-btn').onclick = () => startGame(false); 
         document.getElementById('start-2p-btn').onclick = () => startGame(true);
     </script>
