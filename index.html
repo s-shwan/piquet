@@ -273,8 +273,8 @@
                     return;
                 }
 
-                if (selectedCards.length === 0) {
-                    alert('Select at least one card to discard.');
+                if (selectedCards.length === 0 && this.declarer === 0) {
+                    alert('Select at least one card to discard, or click again to pass if you do not wish to discard.');
                     return;
                 }
 
@@ -295,16 +295,19 @@
             }
             autoEcarte() {
                 if (this.declarer === 1 && this.phase === 'ecarte') {
-                    // Player 2 AI discards 1 or 2 low cards (very simple AI)
+                    // Player 2 AI discards low cards up to the number P1 discarded, capped by talon size
                     let p2 = this.players[1];
-                    let cardsToDiscard = p2.hand.slice(p2.hand.length - 2); // Discard two lowest-value cards
+                    let cardsToDiscard = [];
 
-                    // Player 2 can only discard if Player 1 has left cards in the talon
                     if (this.talon.length > 0) {
-                        this.exchangeCards(1, cardsToDiscard.slice(0, Math.min(cardsToDiscard.length, this.talon.length)));
-                    } else {
-                        this.exchangeCards(1, []); // Draw 0 if talon is empty
-                    }
+                         // Simple AI: Discard lowest cards
+                        cardsToDiscard = p2.hand.slice(p2.hand.length - 2); 
+                    } 
+                    
+                    // Cap the discard count by remaining talon cards
+                    const actualDiscards = cardsToDiscard.slice(0, this.talon.length);
+
+                    this.exchangeCards(1, actualDiscards); 
 
                     this.phase = 'declare';
                     document.getElementById('ecarte-btn').style.display = 'none';
@@ -314,6 +317,7 @@
             }
             declarePhase() {
                 // Simplified declaration: both players score based on their tierces
+                document.getElementById('trick-result').innerText = '';
                 this.players.forEach(p => {
                     let points = p.declareCombinations();
                     p.score += points;
@@ -379,6 +383,15 @@
                 let card2 = this.trickCards[1];
                 let winner = card1.player;
                 
+                // The second card wins if:
+                // 1. It follows suit AND its value is higher than the lead card.
+                // OR 
+                // 2. The second player played off-suit (didn't follow ledSuit), meaning card2.suit !== card1.suit.
+                //    In Piquet, there are no trumps, so if you can't follow suit, you lose. The rule below is correct
+                //    because the legal play check ensures that if P2 *could* follow suit but chose not to, they lose.
+                //    Since the AI and human are constrained by getLegalCards, we only need to check if card2 beats card1
+                //    IF card2 followed suit.
+                
                 if (card2.card.suit === card1.card.suit && card2.card.value > card1.card.value) {
                     winner = card2.player;
                 }
@@ -391,7 +404,7 @@
                     this.players[winner].score += 10; 
                     this.endRound();
                 } else {
-                    document.getElementById('trick-result').innerText = `${this.players[winner].name} wins the trick! (${this.players[0].name} ${this.tricksWon[0]} vs ${this.players[1].name} ${this.tricksWon[1]})`;
+                    document.getElementById('trick-result').innerText = `${this.players[winner].name} wins the trick! (P1: ${this.tricksWon[0]} vs P2: ${this.tricksWon[1]})`;
                     this.leader = winner; // Winner leads next trick
                     this.trickCards = [];
                     this.ledSuit = null;
@@ -400,7 +413,7 @@
                 }
             }
             endRound() {
-                // Brelan/Carte Blanche (Skipped for simplicity)
+                // Scoring for most tricks (Dix-de-der: 10 points for last trick already added)
                 
                 // Capot (Winning all tricks)
                 if (this.tricksWon[0] === 12) {
@@ -410,9 +423,13 @@
                     this.players[1].score += 40;
                     alert('Capot! Player 2 wins all tricks (+40).');
                 } else {
-                    // Majority of tricks (Dix-de-der: 10 points for last trick already added)
-                    let winner = this.tricksWon[0] > this.tricksWon[1] ? 0 : 1;
-                    this.players[winner].score += 10; // 10 points for most tricks
+                    // Majority of tricks
+                    if (this.tricksWon[0] > this.tricksWon[1]) {
+                         this.players[0].score += 10; // 10 points for most tricks
+                    } else if (this.tricksWon[1] > this.tricksWon[0]) {
+                         this.players[1].score += 10;
+                    } 
+                    // If tricks are 6-6, nobody gets the majority bonus
                 }
 
                 this.updateUI();
@@ -421,6 +438,7 @@
                 if (Math.max(...this.players.map(p => p.score)) >= 100) {
                     alert(`${this.players.find(p => p.score >= 100).name} wins the game!`);
                 } else {
+                    // Start next round with the other player leading (in a proper Piquet game, the dealer rotates)
                     this.startRound();
                 }
             }
@@ -429,43 +447,40 @@
                 const p1 = this.players[0];
                 const p2 = this.players[1];
                 document.getElementById('scores').innerText = `Player 1: ${p1.score} | Player 2 (AI): ${p2.score}`;
-                document.getElementById('current-player').innerText = `${this.players[this.leader].name}'s turn (${this.phase})`;
+                
+                // Determine whose hand should be displayed and who is acting
+                const isP1Acting = this.phase === 'ecarte' || (this.phase === 'tricks' && this.leader === 0) || (this.phase === 'tricks' && this.leader === 1 && this.trickCards.length === 1);
+
+                document.getElementById('current-player').innerText = isP1Acting ? `Player 1's turn (${this.phase})` : `Player 2 (AI) is playing...`;
                 
                 let handDiv = document.getElementById('hand-display');
                 handDiv.innerHTML = '';
                 
-                // Enable/Disable Ecarte button
-                document.getElementById('ecarte-btn').disabled = (this.declarer === 1 && this.phase === 'ecarte');
-
-                if (this.phase === 'ecarte' || this.phase === 'tricks') {
-                    const activePlayer = this.players[this.declarer]; // Human player is always Player 1 (index 0)
-
-                    // Only display cards for the human player (Player 1)
-                    if (this.declarer === 0) {
-                        let legalCards = this.phase === 'tricks' ? p1.getLegalCards(this.ledSuit) : p1.hand;
-                        
-                        p1.hand.forEach((card, idx) => {
-                            let cardDiv = this.createCardDiv(card);
-                            
-                            if (this.phase === 'ecarte') {
-                                cardDiv.onclick = () => this.selectDiscard(idx);
-                                if (p1.discards.includes(card)) cardDiv.classList.add('selected');
-                            } else if (this.phase === 'tricks') {
-                                if (this.leader === 0) { // If P1 leads
-                                    cardDiv.onclick = () => this.playCard(0, idx);
-                                } else if (this.leader === 1) { // If P2 led
-                                    if (legalCards.includes(card)) {
-                                        cardDiv.onclick = () => this.playCard(0, idx);
-                                    } else {
-                                        cardDiv.classList.add('disabled');
-                                    }
-                                }
-                            }
-                            handDiv.appendChild(cardDiv);
-                        });
-                    }
-                }
+                // Controls visibility
+                document.getElementById('ecarte-btn').style.display = (this.phase === 'ecarte' && this.declarer === 0) ? 'block' : 'none';
+                document.getElementById('declare-btn').style.display = (this.phase === 'declare') ? 'block' : 'none';
                 
+                // Only display cards for the human player (Player 1)
+                if (isP1Acting && this.declarer === 0) {
+                    let legalCards = this.phase === 'tricks' ? p1.getLegalCards(this.ledSuit) : p1.hand;
+                    
+                    p1.hand.forEach((card, idx) => {
+                        let cardDiv = this.createCardDiv(card);
+                        
+                        if (this.phase === 'ecarte') {
+                            cardDiv.onclick = () => this.selectDiscard(idx);
+                            if (p1.discards.includes(card)) cardDiv.classList.add('selected');
+                        } else if (this.phase === 'tricks') {
+                            if (legalCards.includes(card)) {
+                                cardDiv.onclick = () => this.playCard(0, idx);
+                            } else {
+                                cardDiv.classList.add('disabled');
+                            }
+                        }
+                        handDiv.appendChild(cardDiv);
+                    });
+                }
+
                 // Update Trick Area
                 const p1TrickDiv = document.getElementById('p1-trick-card');
                 const p2TrickDiv = document.getElementById('p2-trick-card');
@@ -509,7 +524,6 @@
                 } else {
                     alert('You can discard up to 5 cards.');
                 }
-                // Discards array is used for logic only, the actual removal from hand happens in doEcarte
             }
         }
 
