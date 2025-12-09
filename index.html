@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piquet: Mobile Hotseat Edition</title>
+    <title>Piquet: Pure Hotseat Edition</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Lato:wght@400;700&family=Great+Vibes&display=swap" rel="stylesheet">
     <style>
         /* --- CSS VARIABLES & RESET --- */
@@ -12,9 +12,9 @@
             --felt-dark: #1e3f2b;
             --gold: #d4af37;
             --gold-light: #f3e5ab;
-            --miss-red: #cc0000;
-            --card-w: 70px; 
-            --card-h: 100px;
+            --miss-red: #cc0000; /* Deep Red for Dedication */
+            --card-w: 90px;
+            --card-h: 130px;
         }
         * { box-sizing: border-box; }
 
@@ -23,25 +23,22 @@
             background: radial-gradient(circle at center, var(--felt-green), var(--felt-dark));
             color: #fff;
             margin: 0;
-            padding: 10px;
-            /* CRITICAL: Enforce full viewport height and prevent scrolling */
-            min-height: 100vh;
-            height: 100vh; 
-            overflow: hidden; /* Prevent all vertical scrolling */
+            padding: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
 
         /* --- DEDICATION STYLING --- */
         #dedication-line {
-            font-family: 'Great Vibes', cursive;
-            font-size: 1.8rem;
+            font-family: 'Great Vibes', cursive; /* Elegant Script Font */
+            font-size: 2.5rem;
             color: var(--miss-red);
             text-shadow: 1px 1px 3px rgba(0,0,0,0.7), 0 0 10px var(--miss-red);
             margin-bottom: 5px;
             letter-spacing: 1px;
-            text-align: center;
         }
 
         /* --- TYPOGRAPHY --- */
@@ -50,56 +47,59 @@
             color: var(--gold);
             text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
             margin: 0 0 10px 0;
-            font-size: 2.2rem;
+            font-size: 3rem;
             letter-spacing: 1px;
-            text-align: center;
         }
 
         /* --- HUD --- */
         .hud-container {
             width: 100%;
-            padding: 10px 15px;
-            margin-bottom: 10px;
-            font-size: 0.9rem;
+            max-width: 900px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-bottom: 20px;
+            padding: 15px 25px;
             background: rgba(0,0,0,0.3);
             border-radius: 12px;
             border-bottom: 2px solid var(--gold);
-            flex-shrink: 0; /* Important: prevents shrinking */
         }
         .score-box { font-size: 1.2rem; font-weight: 700; }
-        .score-box span { font-size: 1.2rem; }
-        #phase-indicator { font-size: 1.2rem; }
+        .score-box span { color: var(--gold); margin-left: 5px; font-size: 1.4rem; }
+        #phase-indicator {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+            color: var(--gold-light);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
 
-        /* --- GAME AREA (Container for Table, Hand, and Overlay) --- */
+        /* --- GAME AREA --- */
         #game-area {
             position: relative;
             width: 100%;
             max-width: 900px;
             display: flex;
             flex-direction: column;
-            flex-grow: 1; /* Allows it to take up available vertical space */
+            align-items: center;
         }
 
         /* --- TABLE / TRICK AREA & TALONS --- */
         #table-center {
             display: flex;
-            flex-direction: column;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
             width: 100%;
-            margin: 10px auto;
-            flex-shrink: 0; /* Keeps table size consistent */
+            max-width: 500px;
+            margin: 20px auto;
         }
         #trick-area {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 120px;
-            width: 90%;
-            margin: 10px 0;
+            height: 180px;
+            flex-grow: 1;
+            margin: 0 20px;
             border: 2px dashed rgba(212, 175, 55, 0.3);
             border-radius: 16px;
             background: rgba(0,0,0,0.1);
@@ -107,101 +107,172 @@
         .trick-slot {
             width: var(--card-w);
             height: var(--card-h);
-            margin: 0 10px;
+            margin: 0 20px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: 1px solid rgba(255,255,255,0.05); 
         }
 
         /* --- TALON PILES --- */
         .talon-pile {
-            width: 50px;
-            height: 70px;
-            font-size: 0.8rem;
-            margin: 10px 0;
+            width: 60px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--gold);
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--gold-light);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            position: relative;
         }
-        #talon-p1 { order: 1; margin-bottom: 20px;}
-        #trick-area { order: 2; }
-        #talon-p2 { order: 3; margin-top: 20px;}
-
-        /* --- HAND AREA (The only element allowed to scroll) --- */
+        .talon-pile::after {
+            content: 'DISCARDS';
+            position: absolute;
+            bottom: -20px;
+            font-size: 0.7rem;
+            font-weight: 400;
+            opacity: 0.7;
+        }
+        .talon-pile.empty {
+            background: rgba(255, 255, 255, 0.05);
+            border-style: dashed;
+            color: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* --- HAND AREA --- */
         .hand-container {
-            min-height: 50px; /* Small minimum height */
+            min-height: 160px;
             width: 100%;
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
-            padding: 5px;
+            gap: -10px;
+            padding: 10px;
             transition: opacity 0.3s;
-            flex-grow: 1; /* CRITICAL: Takes up all available space */
-            overflow-y: auto; /* CRITICAL: Scrolls only the hand if needed */
-            /* Removed negative margins/gaps that could cause overflow */
         }
         
         /* --- CARD STYLING --- */
         .card {
             width: var(--card-w);
             height: var(--card-h);
-            padding: 5px;
-            margin: 3px; 
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 8px;
+            margin: 5px;
             cursor: pointer;
             transition: transform 0.2s, box-shadow 0.2s;
             user-select: none;
+            color: #333;
         }
-        .rank { font-size: 1rem; }
-        .suit { font-size: 1.4rem; }
-        .center-suit { font-size: 2rem; }
-
         .card:hover:not(.disabled) {
-            transform: translateY(-8px) scale(1.05);
+            transform: translateY(-15px) scale(1.05);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+            z-index: 10;
         }
         .card.selected {
-            transform: translateY(-12px);
+            transform: translateY(-20px);
+            box-shadow: 0 0 0 3px var(--gold);
+            z-index: 5;
         }
+        .card.disabled {
+            opacity: 0.6;
+            filter: grayscale(80%);
+            cursor: not-allowed;
+        }
+        .rank { font-weight: 900; font-size: 1.2rem; line-height: 1; }
+        .suit { font-size: 1.8rem; align-self: flex-end; line-height: 1; }
+        .center-suit { 
+            position: absolute; 
+            top: 50%; left: 50%; 
+            transform: translate(-50%, -50%); 
+            font-size: 2.5rem; 
+            opacity: 0.15; 
+        }
+        .hearts, .diamonds { color: #d32f2f; }
+        .clubs, .spades { color: #212121; }
 
         /* --- CONTROLS --- */
         .controls-area {
-            margin-top: 15px;
+            margin-top: 20px;
             display: flex;
-            gap: 10px;
+            gap: 15px;
             flex-wrap: wrap;
             justify-content: center;
-            flex-shrink: 0; /* Important: prevents shrinking */
         }
         button {
-            padding: 10px 20px;
-            font-size: 0.9rem;
-            box-shadow: 0 3px 0 #8b6914, 0 4px 8px rgba(0,0,0,0.3);
+            background: linear-gradient(to bottom, #f3e5ab, #d4af37);
+            border: 1px solid #b8860b;
+            border-radius: 6px;
+            padding: 12px 30px;
+            color: #3e2723;
+            font-family: 'Lato', sans-serif;
+            font-weight: 700;
+            font-size: 1rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #8b6914, 0 5px 10px rgba(0,0,0,0.3);
+            transition: all 0.1s;
         }
+        button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+        button:active { transform: translateY(4px); box-shadow: 0 0 0 #8b6914, inset 0 2px 5px rgba(0,0,0,0.2); }
         
         /* --- TRANSITION OVERLAY --- */
         #transition-overlay {
+            display: none;
             position: absolute;
-            height: 100%; /* Match game-area height */
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(30, 63, 43, 0.98); /* Opaque green to hide cards */
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            z-index: 100;
+            border-radius: 20px;
+            border: 2px solid var(--gold);
         }
-        #transition-overlay h2 { font-size: 1.5rem; }
-        #transition-overlay p { font-size: 1rem; }
+        #transition-overlay h2 { color: var(--gold-light); margin-bottom: 20px; font-size: 2rem; }
+        #transition-overlay p { font-size: 1.2rem; margin-bottom: 30px; color: #fff; }
 
-        /* --- DESKTOP/TABLET VIEW (min-width: 600px) --- */
-        @media (min-width: 600px) {
-            :root { 
-                --card-w: 90px; 
-                --card-h: 130px; 
-            }
-            #dedication-line { font-size: 2.5rem; }
-            h1 { font-size: 3rem; }
-            .hud-container { font-size: 1.2rem; }
+        /* --- NOTIFICATIONS --- */
+        #notification-banner {
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(20, 20, 20, 0.95);
+            border: 1px solid var(--gold);
+            padding: 15px 40px;
+            border-radius: 0 0 10px 10px;
+            text-align: center;
+            z-index: 200;
+            transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+        }
+        #notification-banner.show { top: 0; }
+        #notif-text { font-size: 1.1rem; color: #fff; }
 
-            /* Reset Table layout for desktop/tablet */
-            #table-center {
-                flex-direction: row; 
-                max-width: 900px;
-            }
-            #trick-area {
-                height: 180px;
-                flex-grow: 1;
-                margin: 0 20px;
-            }
-            #talon-p1 { order: 0; margin: 0; }
-            #trick-area { order: 1; }
-            #talon-p2 { order: 2; margin: 0; }
+        /* --- RESPONSIVE --- */
+        @media (max-width: 600px) {
+            :root { --card-w: 60px; --card-h: 90px; }
+            #dedication-line { font-size: 1.8rem; }
+            h1 { font-size: 2rem; }
+            .hud-container { flex-direction: column; gap: 10px; }
+            #table-center { flex-direction: column; }
+            #trick-area { margin: 10px 0; }
+            .talon-pile { margin: 10px 0; }
         }
     </style>
 </head>
