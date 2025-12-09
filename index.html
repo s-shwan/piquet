@@ -8,14 +8,13 @@
     <style>
         /* --- CSS VARIABLES & RESET --- */
         :root {
-            /* Adjusted for better mobile fit */
             --felt-green: #35654d;
             --felt-dark: #1e3f2b;
             --gold: #d4af37;
             --gold-light: #f3e5ab;
             --miss-red: #cc0000;
-            --card-w: 70px; /* Default card width reduced */
-            --card-h: 100px; /* Default card height reduced */
+            --card-w: 70px; 
+            --card-h: 100px;
         }
         * { box-sizing: border-box; }
 
@@ -24,18 +23,20 @@
             background: radial-gradient(circle at center, var(--felt-green), var(--felt-dark));
             color: #fff;
             margin: 0;
-            padding: 10px; /* Reduced padding */
+            padding: 10px;
+            /* CRITICAL: Enforce full viewport height and prevent scrolling */
+            min-height: 100vh;
+            height: 100vh; 
+            overflow: hidden; /* Prevent all vertical scrolling */
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
-            overflow-x: hidden;
         }
 
         /* --- DEDICATION STYLING --- */
         #dedication-line {
             font-family: 'Great Vibes', cursive;
-            font-size: 1.8rem; /* Smaller font for mobile */
+            font-size: 1.8rem;
             color: var(--miss-red);
             text-shadow: 1px 1px 3px rgba(0,0,0,0.7), 0 0 10px var(--miss-red);
             margin-bottom: 5px;
@@ -49,7 +50,7 @@
             color: var(--gold);
             text-shadow: 2px 2px 4px rgba(0,0,0,0.6);
             margin: 0 0 10px 0;
-            font-size: 2.2rem; /* Smaller heading */
+            font-size: 2.2rem;
             letter-spacing: 1px;
             text-align: center;
         }
@@ -57,36 +58,46 @@
         /* --- HUD --- */
         .hud-container {
             width: 100%;
-            padding: 10px 15px; /* Reduced padding */
+            padding: 10px 15px;
             margin-bottom: 10px;
             font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            border-bottom: 2px solid var(--gold);
+            flex-shrink: 0; /* Important: prevents shrinking */
         }
+        .score-box { font-size: 1.2rem; font-weight: 700; }
         .score-box span { font-size: 1.2rem; }
-        #phase-indicator {
-            font-size: 1.2rem; /* Smaller phase indicator */
-        }
+        #phase-indicator { font-size: 1.2rem; }
 
-        /* --- GAME AREA --- */
+        /* --- GAME AREA (Container for Table, Hand, and Overlay) --- */
         #game-area {
             position: relative;
             width: 100%;
             max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1; /* Allows it to take up available vertical space */
         }
 
-        /* --- TABLE / TRICK AREA & TALONS (Mobile-first layout) --- */
+        /* --- TABLE / TRICK AREA & TALONS --- */
         #table-center {
             display: flex;
-            flex-direction: column; /* Stack vertically by default */
+            flex-direction: column;
             justify-content: center;
             align-items: center;
             width: 100%;
             margin: 10px auto;
+            flex-shrink: 0; /* Keeps table size consistent */
         }
         #trick-area {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 120px; /* Reduced height */
+            height: 120px;
             width: 90%;
             margin: 10px 0;
             border: 2px dashed rgba(212, 175, 55, 0.3);
@@ -96,54 +107,79 @@
         .trick-slot {
             width: var(--card-w);
             height: var(--card-h);
-            margin: 0 10px; /* Reduced margin */
+            margin: 0 10px;
         }
 
-        /* --- TALON PILES (Reflowed above/below trick area) --- */
+        /* --- TALON PILES --- */
         .talon-pile {
             width: 50px;
-            height: 70px; /* Smaller pile size */
+            height: 70px;
             font-size: 0.8rem;
             margin: 10px 0;
         }
-        #talon-p1 { order: 1; margin-bottom: 20px;} /* P1 discards above */
+        #talon-p1 { order: 1; margin-bottom: 20px;}
         #trick-area { order: 2; }
-        #talon-p2 { order: 3; margin-top: 20px;} /* P2 discards below */
+        #talon-p2 { order: 3; margin-top: 20px;}
 
+        /* --- HAND AREA (The only element allowed to scroll) --- */
+        .hand-container {
+            min-height: 50px; /* Small minimum height */
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 5px;
+            transition: opacity 0.3s;
+            flex-grow: 1; /* CRITICAL: Takes up all available space */
+            overflow-y: auto; /* CRITICAL: Scrolls only the hand if needed */
+            /* Removed negative margins/gaps that could cause overflow */
+        }
+        
         /* --- CARD STYLING --- */
         .card {
             width: var(--card-w);
             height: var(--card-h);
-            padding: 5px; /* Reduced padding */
-            margin: 3px; /* Reduced margin */
+            padding: 5px;
+            margin: 3px; 
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            user-select: none;
         }
         .rank { font-size: 1rem; }
         .suit { font-size: 1.4rem; }
         .center-suit { font-size: 2rem; }
 
         .card:hover:not(.disabled) {
-            transform: translateY(-8px) scale(1.05); /* Reduced hover lift */
+            transform: translateY(-8px) scale(1.05);
         }
         .card.selected {
-            transform: translateY(-12px); /* Reduced selected lift */
+            transform: translateY(-12px);
         }
 
         /* --- CONTROLS --- */
         .controls-area {
-            margin-top: 15px; /* Reduced margin */
+            margin-top: 15px;
+            display: flex;
             gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            flex-shrink: 0; /* Important: prevents shrinking */
         }
         button {
-            padding: 10px 20px; /* Optimized button size */
+            padding: 10px 20px;
             font-size: 0.9rem;
             box-shadow: 0 3px 0 #8b6914, 0 4px 8px rgba(0,0,0,0.3);
         }
         
         /* --- TRANSITION OVERLAY --- */
+        #transition-overlay {
+            position: absolute;
+            height: 100%; /* Match game-area height */
+        }
         #transition-overlay h2 { font-size: 1.5rem; }
         #transition-overlay p { font-size: 1rem; }
 
-        /* --- DESKTOP/TABLET VIEW (Override mobile layout for larger screens) --- */
+        /* --- DESKTOP/TABLET VIEW (min-width: 600px) --- */
         @media (min-width: 600px) {
             :root { 
                 --card-w: 90px; 
@@ -153,8 +189,9 @@
             h1 { font-size: 3rem; }
             .hud-container { font-size: 1.2rem; }
 
+            /* Reset Table layout for desktop/tablet */
             #table-center {
-                flex-direction: row; /* Horizontal layout on wide screens */
+                flex-direction: row; 
                 max-width: 900px;
             }
             #trick-area {
@@ -162,9 +199,9 @@
                 flex-grow: 1;
                 margin: 0 20px;
             }
-            #talon-p1 { order: 0; margin: 0; } /* Reset positioning */
+            #talon-p1 { order: 0; margin: 0; }
             #trick-area { order: 1; }
-            #talon-p2 { order: 2; margin: 0; } /* Reset positioning */
+            #talon-p2 { order: 2; margin: 0; }
         }
     </style>
 </head>
